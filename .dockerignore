@@ -1,0 +1,33 @@
+# Ignore git
+.git
+.gitignore
+
+# Node modules (we install inside Docker)
+node_modules
+
+# Logs
+logs
+*.log
+
+# Local env files
+.env
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build cache
+dist
+build
+
+# Docker files
+Dockerfile
+docker-compose.yml
+
+# Kubernetes
+k8s/
+
+# IDE files
+.vscode/
+.idea/
