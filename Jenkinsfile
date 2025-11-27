@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub-creds'
-        AWS_CREDENTIALS = 'aws-creds'        // If your Jenkins uses IAM role, remove this
+        AWS_CREDENTIALS = 'aws-creds'
         IMAGE_NAME = "sipserver/my-custom-nginx"
         AWS_REGION = "ap-south-1"
         EKS_CLUSTER = "my-eks-cluster"
@@ -53,14 +53,19 @@ pipeline {
 
         stage('Configure kubectl for EKS') {
             steps {
-                script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                      credentialsId: "${AWS_CREDENTIALS}"]]) {
+                withCredentials([usernamePassword(credentialsId: "${AWS_CREDENTIALS}",
+                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
 
-                        sh """
-                            aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
-                        """
-                    }
+                    sh """
+                        echo "Configuring AWS CLI..."
+                        aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                        aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                        aws configure set default.region ${AWS_REGION}
+
+                        echo "Updating kubeconfig..."
+                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
+                    """
                 }
             }
         }
