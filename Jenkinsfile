@@ -2,8 +2,12 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = 'dockerhub-creds'   // Jenkins credential ID (username+password)
+        DOCKERHUB_CREDENTIALS = 'dockerhub-creds'
+        AWS_CREDENTIALS = 'aws-creds'        // If your Jenkins uses IAM role, remove this
         IMAGE_NAME = "sipserver/my-custom-nginx"
+        AWS_REGION = "ap-south-1"
+        EKS_CLUSTER = "my-eks-cluster"
+        K8S_NAMESPACE = "default"
     }
 
     stages {
@@ -31,12 +35,9 @@ pipeline {
 
         stage('Login to Docker Hub') {
             steps {
-                script {
-                    echo "Logging into Docker Hub..."
-                    withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}",
-                                  usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                        sh "echo \$PASSWORD | docker login -u \$USERNAME --password-stdin"
-                    }
+                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}",
+                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh "echo \$PASSWORD | docker login -u \$USERNAME --password-stdin"
                 }
             }
         }
@@ -50,12 +51,39 @@ pipeline {
             }
         }
 
-        stage('Deploy Container') {
-            when {
-                expression { return false }  // Enable manually later
-            }
+        stage('Configure kubectl for EKS') {
             steps {
-                echo "Deploying to server or Kubernetes..."
+                script {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                      credentialsId: "${AWS_CREDENTIALS}"]]) {
+
+                        sh """
+                            aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Update Deployment YAML Image') {
+            steps {
+                sh """
+                    echo "Updating deployment.yaml with new image tag..."
+                    sed -i 's|image: .*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g' k8s/deployment.yaml
+                """
+            }
+        }
+
+        stage('Deploy to AWS EKS') {
+            steps {
+                sh """
+                    echo "Applying deployment and service..."
+                    kubectl apply -f k8s/deployment.yaml -n ${K8S_NAMESPACE}
+                    kubectl apply -f k8s/service.yaml -n ${K8S_NAMESPACE}
+
+                    echo "Checking rollout status..."
+                    kubectl rollout status deployment/my-nginx-deployment -n ${K8S_NAMESPACE}
+                """
             }
         }
     }
@@ -67,4 +95,3 @@ pipeline {
         }
     }
 }
-
