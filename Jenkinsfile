@@ -97,7 +97,7 @@ pipeline {
         always {
             sh "docker logout"
             echo "Pipeline completed."
-            echo "Successfully Completed Deployment"
+            echo "Successfully Completed Deployment of POD"
         }
     }
 }
