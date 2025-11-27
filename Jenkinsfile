@@ -94,10 +94,21 @@ pipeline {
     }
 
     post {
-        always {
-            sh "docker logout"
-            echo "Pipeline completed."
-            echo "Successfully Completed Deployment of POD"
-        }
+always {
+        sh "docker logout"
+
+        echo 'Fetching Pod Deployment Timestamp...'
+
+        sh """
+            POD_NAME=\$(kubectl get pods -n ${K8S_NAMESPACE} -l app=my-nginx -o jsonpath='{.items[0].metadata.name}')
+            DEPLOY_TIME=\$(kubectl get pod \$POD_NAME -n ${K8S_NAMESPACE} -o jsonpath='{.status.startTime}')
+            
+            echo "POD Name: \$POD_NAME"
+            echo "POD Deployment Time (UTC): \$DEPLOY_TIME"
+        """
+
+        echo "Pipeline completed."
+        echo "Successfully Completed Deployment of POD"        
+}
     }
 }
