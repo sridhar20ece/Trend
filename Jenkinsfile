@@ -6,7 +6,7 @@ pipeline {
         AWS_CREDENTIALS = 'aws-creds'
         IMAGE_NAME = "sipserver/my-custom-nginx"
         AWS_REGION = "ap-south-1"
-        EKS_CLUSTER = "my-eks-cluster"
+        EKS_CLUSTER = "jenkins-eks-cluster"
         K8S_NAMESPACE = "default"
     }
 
@@ -64,7 +64,7 @@ pipeline {
                         aws configure set default.region ${AWS_REGION}
 
                         echo "Updating kubeconfig..."
-                        aws eks update-kubeconfig --region ${AWS_REGION} --name jenkins-eks-cluster
+                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
                     """
                 }
             }
