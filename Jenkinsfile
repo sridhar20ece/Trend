@@ -64,7 +64,7 @@ pipeline {
                         aws configure set default.region ${AWS_REGION}
 
                         echo "Updating kubeconfig..."
-                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
+                        aws eks update-kubeconfig --region ${AWS_REGION} --name jenkins-eks-cluster
                     """
                 }
             }
